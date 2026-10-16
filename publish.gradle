@@ -1,6 +1,6 @@
 apply plugin: 'maven-publish'
 
-ext.licenseFile = files("$rootDir/LICENSE.txt", "$rootDir/third_party/LICENSES.md")
+ext.licenseFile = files("$rootDir/LICENSE", "$rootDir/THIRD_PARTY_NOTICES.md")
 
 def templateVendorFile = "HighVoltageRobotLib.json"
 

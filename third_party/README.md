@@ -4,6 +4,10 @@
 |---|---|---|
 | nlohmann/json | https://github.com/nlohmann/json | MIT |
 
+Licensing and redistribution obligations are in
+[../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md). This file covers the
+technical details only.
+
 ## Why nlohmann/json is published in the headers zip
 
 `AudioPlayer.h`, `CommonConfig.h` and `MK5NSwerveModule.h` all `#include

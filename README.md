@@ -74,3 +74,19 @@ pushing a `v*` tag publishes to GitHub Pages.
 
 Generated once. **Never change it** — it is how the VS Code extension identifies
 this library and detects duplicate or conflicting vendordeps.
+
+## License
+
+GNU General Public License v3.0 — see [LICENSE](LICENSE).
+
+This is a **copyleft** license, and this is a **library**: a robot project that
+links it forms a combined work that must also be distributed under GPLv3 if it
+is distributed at all. For Team 231's own projects that is the intent. A team
+that cannot accept GPLv3 should not use this library.
+
+Note that FRC teams typically distribute nothing — code that only ever runs on
+your own robot triggers no GPL obligations at all. The obligations begin when
+you publish binaries or source to someone else.
+
+Bundled third-party components and their licenses are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
