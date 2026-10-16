@@ -3,7 +3,7 @@
     "name": "HighVoltageRobotLib",
     "version": "${version}",
     "frcYear": "2026",
-    "uuid": "REPLACE-ME-RUN-uuidgen-ONCE-THEN-NEVER-CHANGE",
+    "uuid": "1acfbe61-8cee-4d1f-a525-48c1df6705f0",
     "mavenUrls": [
         "https://frc-231.github.io/HighVoltageRobotLib/repo/"
     ],

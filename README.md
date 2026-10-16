@@ -67,3 +67,10 @@ simulation fixture, which is a larger piece of work.
 
 One branch per season (`2026`, `2027`, ...). Releases tagged `v2026.1.0`;
 pushing a `v*` tag publishes to GitHub Pages.
+
+## Vendordep UUID
+
+`1acfbe61-8cee-4d1f-a525-48c1df6705f0`
+
+Generated once. **Never change it** — it is how the VS Code extension identifies
+this library and detects duplicate or conflicting vendordeps.
