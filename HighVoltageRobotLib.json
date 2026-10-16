@@ -1,0 +1,30 @@
+{
+    "fileName": "HighVoltageRobotLib.json",
+    "name": "HighVoltageRobotLib",
+    "version": "${version}",
+    "frcYear": "2026",
+    "uuid": "REPLACE-ME-RUN-uuidgen-ONCE-THEN-NEVER-CHANGE",
+    "mavenUrls": [
+        "https://frc-231.github.io/HighVoltageRobotLib/repo/"
+    ],
+    "jsonUrl": "https://frc-231.github.io/HighVoltageRobotLib/HighVoltageRobotLib.json",
+    "javaDependencies": [],
+    "jniDependencies": [],
+    "cppDependencies": [
+        {
+            "groupId": "${groupId}",
+            "artifactId": "${artifactId}-cpp",
+            "version": "${version}",
+            "libName": "HighVoltageRobotLib",
+            "headerClassifier": "headers",
+            "sourcesClassifier": "sources",
+            "sharedLibrary": false,
+            "skipInvalidPlatforms": true,
+            "binaryPlatforms": [
+                "linuxathena",
+                "linuxx86-64",
+                "windowsx86-64"
+            ]
+        }
+    ]
+}

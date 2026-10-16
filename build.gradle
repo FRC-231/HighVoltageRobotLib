@@ -1,0 +1,158 @@
+import edu.wpi.first.toolchain.*
+
+plugins {
+    id 'cpp'
+    id 'google-test'
+    id 'edu.wpi.first.wpilib.repositories.WPILibRepositoriesPlugin' version '2025.0'
+    id 'edu.wpi.first.NativeUtils' version '2026.0.1'
+    id 'edu.wpi.first.GradleVsCode' version '2.1.0'
+}
+
+// Pinned to the version GradleRIO 2026.2.1 resolves in FRC231_2026, so the
+// library is compiled against exactly what the robot links against.
+ext.wpilibVersion = "2026.2.1"
+
+// Pinned, not a range: this library is compiled against Phoenix6's headers, and
+// CTRE breaks its API every January. Consumers must install a Phoenix6
+// vendordep of the same major version - see README.
+ext.phoenix6Version = "26.1.1"
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'ctre'
+        url = 'https://maven.ctr-electronics.com/release/'
+    }
+}
+if (project.hasProperty('releaseMode')) {
+    wpilibRepositories.addAllReleaseRepositories(project)
+} else {
+    wpilibRepositories.addAllDevelopmentRepositories(project)
+}
+
+apply from: 'config.gradle'
+
+// Phoenix6 appears in this library's PUBLIC headers (MK4SwerveModule.h,
+// MK5NSwerveModule.h, CommonConfig.h), so we need its headers to compile.
+// We deliberately do NOT link its binaries: this is a static library, so
+// unresolved CTRE symbols are fine here and get resolved at the consumer's
+// link step by their own Phoenix6 vendordep. That keeps us off CTRE's
+// per-platform binary matrix entirely.
+configurations {
+    phoenix6Headers
+    // Desktop Phoenix6 binaries, needed ONLY to link the test executable.
+    // The published library itself never links these.
+    phoenix6TestLibs
+}
+
+// Tests run on the desktop, so only the host platform's binaries are needed.
+// Fully qualified: the cpp plugin puts a different OperatingSystem class in scope.
+def hostOs = org.gradle.internal.os.OperatingSystem.current()
+def desktopClassifier = hostOs.isWindows() ? 'windowsx86-64'
+                      : hostOs.isMacOsX()  ? 'osxuniversal'
+                      :                      'linuxx86-64'
+
+dependencies {
+    phoenix6Headers "com.ctre.phoenix6:wpiapi-cpp:${phoenix6Version}:headers@zip"
+    phoenix6Headers "com.ctre.phoenix6:api-cpp:${phoenix6Version}:headers@zip"
+    phoenix6Headers "com.ctre.phoenix6:tools:${phoenix6Version}:headers@zip"
+
+    phoenix6TestLibs "com.ctre.phoenix6:wpiapi-cpp:${phoenix6Version}:${desktopClassifier}@zip"
+    phoenix6TestLibs "com.ctre.phoenix6:api-cpp:${phoenix6Version}:${desktopClassifier}@zip"
+    phoenix6TestLibs "com.ctre.phoenix6:tools:${phoenix6Version}:${desktopClassifier}@zip"
+}
+
+def phoenix6HeaderDir = layout.buildDirectory.dir("phoenix6-headers")
+
+task extractPhoenix6Headers(type: Sync) {
+    description = 'Unpacks the Phoenix6 header zips so the compiler can see them.'
+    group = 'Build'
+    duplicatesStrategy = 'exclude'  // the three zips each carry CTRE_LICENSE.txt
+    from { configurations.phoenix6Headers.collect { zipTree(it) } }
+    into phoenix6HeaderDir
+}
+
+def phoenix6LibDir = layout.buildDirectory.dir("phoenix6-libs")
+
+task extractPhoenix6TestLibs(type: Sync) {
+    description = 'Unpacks the desktop Phoenix6 shared libraries for test linking.'
+    group = 'Build'
+    duplicatesStrategy = 'exclude'
+    from { configurations.phoenix6TestLibs.collect { zipTree(it) } }
+    into phoenix6LibDir
+}
+
+nativeUtils {
+    exportsConfigs {
+        HighVoltageRobotLib {
+        }
+    }
+}
+
+model {
+    components {
+        HighVoltageRobotLib(NativeLibrarySpec) {
+            sources {
+                cpp {
+                    source {
+                        srcDirs 'src/main/native/cpp'
+                        include '**/*.cpp'
+                    }
+                    exportedHeaders {
+                        srcDirs 'src/main/native/include',
+                                'third_party/nlohmann'
+                    }
+                }
+            }
+            binaries.all {
+                // -isystem, not -I. The build runs with -nostdinc -Wall
+                // -Wextra -pedantic, and GCC only suppresses diagnostics from
+                // headers it considers "system" ones. Phoenix6's headers
+                // instantiate wpiutil's fmt/units templates in ways that trip
+                // -fpermissive under GCC 15; as -I that is a hard compile
+                // error, as -isystem it is silent - which is exactly how a
+                // consuming robot project receives them from its vendordep.
+                cppCompiler.args "-isystem", "${phoenix6HeaderDir.get().asFile}"
+            }
+            nativeUtils.useRequiredLibrary(it, 'wpilib_shared')
+        }
+    }
+    testSuites {
+        HighVoltageRobotLibTest {
+            sources.cpp {
+                source {
+                    srcDir 'src/test/native/cpp'
+                    include '**/*.cpp'
+                }
+            }
+            binaries.all {
+                cppCompiler.args "-isystem", "${phoenix6HeaderDir.get().asFile}"
+
+                // The test exe links the whole static library, which carries
+                // unresolved CTRE symbols by design, so the tests - and only
+                // the tests - need real Phoenix6 binaries.
+                def libDir = new File("${phoenix6LibDir.get().asFile}/linux/x86-64/shared")
+                linker.args "-L${libDir}", "-Wl,-rpath,${libDir}",
+                            "-lCTRE_Phoenix6_WPI", "-lCTRE_PhoenixTools"
+            }
+            nativeUtils.useRequiredLibrary(it, 'wpilib_executable_shared', 'googletest_static')
+        }
+    }
+}
+
+// Wired outside model {} on purpose: the software model creates the CppCompile
+// tasks lazily, and referencing extractPhoenix6Headers from inside a model rule
+// fails to resolve.
+tasks.withType(CppCompile).configureEach {
+    dependsOn extractPhoenix6Headers
+}
+
+tasks.withType(LinkExecutable).configureEach {
+    dependsOn extractPhoenix6TestLibs
+}
+
+apply from: 'publish.gradle'
+
+wrapper {
+    gradleVersion = '8.14.3'
+}

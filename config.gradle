@@ -1,0 +1,109 @@
+import org.gradle.internal.os.OperatingSystem
+
+nativeUtils.addWpiNativeUtils()
+
+// Cross-compilation targets. The roboRIO is the only cross target we publish;
+// linuxarm32/64 are available from native-utils if a coprocessor ever needs them.
+nativeUtils.withCrossRoboRIO()
+
+nativeUtils {
+    wpi {
+        configureDependencies {
+            wpiVersion = wpilibVersion
+            opencvYear = "frc2025"
+            niLibVersion = "2026.1.2"
+            opencvVersion = "4.10.0-2"
+        }
+    }
+}
+
+nativeUtils.wpi.addWarnings()
+
+nativeUtils.setSinglePrintPerPlatform()
+
+model {
+    components {
+        all {
+            nativeUtils.useAllPlatforms(it)
+        }
+    }
+    binaries {
+        withType(NativeBinarySpec).all {
+            nativeUtils.usePlatformArguments(it)
+        }
+    }
+}
+
+ext.createComponentZipTasks = { components, names, base, type, project, func ->
+    def stringNames = names.collect {it.toString()}
+    def configMap = [:]
+    components.each {
+        if (it in NativeLibrarySpec && stringNames.contains(it.name)) {
+            it.binaries.each {
+                if (!it.buildable) return
+                def target = nativeUtils.getPublishClassifier(it)
+                if (configMap.containsKey(target)) {
+                    configMap.get(target).add(it)
+                } else {
+                    configMap.put(target, [])
+                    configMap.get(target).add(it)
+                }
+            }
+        }
+    }
+    def taskList = []
+    def outputsFolder = file("$project.buildDir/outputs")
+    configMap.each { key, value ->
+        def task = project.tasks.create(base + "-${key}", type) {
+            description = 'Creates component archive for platform ' + key
+            destinationDirectory = outputsFolder
+            archiveClassifier = key
+            archiveBaseName = '_M_' + base
+            duplicatesStrategy = 'exclude'
+
+            from(licenseFile) {
+                into '/'
+            }
+
+            func(it, value)
+        }
+        taskList.add(task)
+
+        project.build.dependsOn task
+        project.artifacts {
+            task
+        }
+        addTaskToCopyAllOutputs(task)
+    }
+    return taskList
+}
+
+ext.includeStandardZipFormat = { task, value ->
+    value.each { binary ->
+        if (binary.buildable) {
+            if (binary instanceof SharedLibraryBinarySpec) {
+                task.dependsOn binary.tasks.link
+                task.from(new File(binary.sharedLibraryFile.absolutePath + ".debug")) {
+                    into nativeUtils.getPlatformPath(binary) + '/shared'
+                }
+                def sharedPath = binary.sharedLibraryFile.absolutePath
+                sharedPath = sharedPath.substring(0, sharedPath.length() - 4)
+
+                task.from(new File(sharedPath + '.pdb')) {
+                    into nativeUtils.getPlatformPath(binary) + '/shared'
+                }
+                task.from(binary.sharedLibraryFile) {
+                    into nativeUtils.getPlatformPath(binary) + '/shared'
+                }
+                task.from(binary.sharedLibraryLinkFile) {
+                    into nativeUtils.getPlatformPath(binary) + '/shared'
+                }
+            } else if (binary instanceof StaticLibraryBinarySpec) {
+                task.dependsOn binary.tasks.createStaticLib
+                task.from(binary.staticLibraryFile) {
+                    into nativeUtils.getPlatformPath(binary) + '/static'
+                }
+            }
+        }
+    }
+}
