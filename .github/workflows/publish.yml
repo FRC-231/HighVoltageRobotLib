@@ -33,8 +33,10 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: ./gradlew installRoboRioToolchain
 
+      # "check", not "test": test is a Java-plugin task and this project has
+      # no java plugin. Native GoogleTest suites run under check.
       - name: Build, test and publish to a local maven tree
-        run: ./gradlew build test publish -PreleaseMode
+        run: ./gradlew build check publish -PreleaseMode
 
       - uses: actions/upload-artifact@v4
         with:
