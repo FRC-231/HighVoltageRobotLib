@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.frc231.highvoltage</groupId>
+  <artifactId>HighVoltageRobotLib-cpp</artifactId>
+  <versioning>
+    <latest>2026.1.0</latest>
+    <release>2026.1.0</release>
+    <versions>
+      <version>2026.1.0</version>
+    </versions>
+    <lastUpdated>20261017004848</lastUpdated>
+  </versioning>
+</metadata>
