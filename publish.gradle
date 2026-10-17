@@ -4,7 +4,28 @@ ext.licenseFile = files("$rootDir/LICENSE", "$rootDir/THIRD_PARTY_NOTICES.md")
 
 def templateVendorFile = "HighVoltageRobotLib.json"
 
-def pubVersion = '2026.1.0'
+// The published version, resolved in this order:
+//
+//   1. -PpublishVersion=X          explicit override
+//   2. the git tag that triggered a CI build, v2026.1.0 -> 2026.1.0
+//   3. a -dev fallback, so local builds and publishToMavenLocal always work
+//
+// Previously this was a hardcoded string, which meant every tag published the
+// same version number and silently overwrote the last one.
+def resolvePubVersion = {
+    def explicit = project.findProperty('publishVersion')
+    if (explicit) {
+        return explicit.toString()
+    }
+    def ref = System.getenv('GITHUB_REF_NAME')
+    if (ref != null && ref ==~ /^v\d.*/) {
+        return ref.substring(1)
+    }
+    return '2026.0.0-dev'
+}
+
+def pubVersion = resolvePubVersion()
+logger.lifecycle("Publishing version: ${pubVersion}")
 
 def outputsFolder = file("$buildDir/outputs")
 def versionFile = file("$outputsFolder/version.txt")
