@@ -23,11 +23,34 @@ mv HighVoltageRobotLib.json vendordeps/
 
 ## Supported platforms
 
-| Platform | Built on |
-|---|---|
-| `linuxathena` (roboRIO) | Ubuntu CI, cross-compiled |
-| `linuxx86-64` | Ubuntu CI |
-| `windowsx86-64` | Windows CI |
+| Platform | Built on | For |
+|---|---|---|
+| `linuxathena` (roboRIO) | Ubuntu CI, cross-compiled | everyone, including students on Windows |
+| `linuxx86-64` | Ubuntu CI | desktop simulation on Ubuntu |
+
+**There is no `windowsx86-64` binary, by design.** Students build on Windows but
+only cross-compile for the roboRIO, which uses the ARM GCC toolchain — MSVC is
+never involved, so a Windows binary of this library would never be linked.
+
+If that ever changes, note that it is currently blocked: MSVC rejects WPILib
+2026.2.1's own `wpimath` geometry headers with `error C3615: constexpr function
+cannot result in a constant expression`, reproduced on both `windows-latest`
+and `windows-2022`.
+
+### Consequence for consuming projects on Windows
+
+A robot project with `includeDesktopSupport = true` builds a desktop executable
+for whatever OS it is run on. On Windows that is `windowsx86-64`, which this
+library does not supply, so `./gradlew build` would fail at the desktop link
+step. `./gradlew deploy` is unaffected — it only needs `linuxathena`.
+
+The clean fix in the consuming project is to enable desktop support only where
+it is actually used:
+
+```gradle
+// Simulation happens on Linux only; students on Windows deploy to the robot.
+def includeDesktopSupport = org.gradle.internal.os.OperatingSystem.current().isLinux()
+```
 
 ## Building this repository
 

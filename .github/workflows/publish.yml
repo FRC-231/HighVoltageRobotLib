@@ -13,18 +13,20 @@ jobs:
       matrix:
         include:
           # Ubuntu produces linuxx86-64 AND cross-compiles linuxathena.
+          # That is every platform this library ships.
+          #
+          # There is deliberately no Windows job. Students build on Windows
+          # but only ever CROSS-COMPILE for the roboRIO, which uses the ARM
+          # GCC toolchain, not MSVC, so no Windows binary of this library is
+          # ever linked. Simulation runs on Ubuntu only.
+          #
+          # This also sidesteps a real blocker: MSVC rejects WPILib 2026.2.1's
+          # wpimath geometry headers with "error C3615: constexpr function
+          # cannot result in a constant expression" (reproduced on both
+          # windows-latest and windows-2022). If a Windows desktop build is
+          # ever needed, that must be solved first.
           - os: ubuntu-latest
             name: linux
-          # Windows binaries cannot be cross-compiled from Linux, which is the
-          # only reason this second runner exists. Students run the desktop
-          # simulator on Windows.
-          # windows-2022, not windows-latest: the newer MSVC on windows-latest
-          # rejects WPILib 2026.2.1's wpimath geometry headers with
-          # "error C3615: constexpr function cannot result in a constant
-          # expression". That is a WPILib/MSVC version incompatibility, not
-          # something this build controls. Revisit when WPILib supports it.
-          - os: windows-2022
-            name: windows
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
